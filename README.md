@@ -1,5 +1,3 @@
----
-
 # greplinks
 
 `greplinks` is a lightweight command-line tool designed to extract and validate URLs from text inputs (files or standard input). It supports various protocols, IPv4/IPv6 addresses, domain names, and advanced validation features such as port checks, query string validation, and fragment handling.
@@ -146,7 +144,7 @@ Contributions are welcome! If you’d like to contribute to this project, please
 
 ## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License**. See the [LICENCE](https://github.com/a-mashhoor/greplinks?tab=MIT-1-ov-file) file for details.
 
 ---
 
