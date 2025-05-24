@@ -5,7 +5,53 @@ import sys
 import ipaddress
 import textwrap
 import os
+import socket
+import urllib.request
 from urllib.parse import urlparse
+
+
+TLD_CACHE_PATH = os.path.expanduser("~/.tld_cache.txt")
+
+FALLBACK_TLDS = {
+    "com",
+    "net",
+    "org",
+    "edu",
+    "gov",
+    "mil",
+    "int",
+    "info",
+    "biz",
+    "co",
+    "io",
+    "dev",
+    "ai",
+    "me",
+    "us",
+    "uk",
+    "ca",
+    "au",
+    "de",
+    "fr",
+    "jp",
+    "cn",
+    "ru",
+    "xyz",
+    "top",
+    "site",
+    "online",
+    "app",
+    "shop",
+    "blog",
+    "tech",
+    "pro",
+    "club",
+    "store",
+    "space",
+    "cloud",
+    "world",
+    "life",
+}
 
 
 def main():
@@ -143,6 +189,56 @@ def is_valid_ipv6(ip):
         return False
 
 
+def is_connected():
+    """Check if there's an internet connection by pinging Cloudflare DNS."""
+    try:
+        socket.create_connection(("1.1.1.1", 53), timeout=2)
+        return True
+    except OSError:
+        return False
+
+
+def fetch_tlds_from_iana():
+    """Fetch TLDs from IANA or use cached file or fallback list."""
+    if os.path.exists(TLD_CACHE_PATH):
+        try:
+            with open(TLD_CACHE_PATH, "r", encoding="utf-8") as f:
+                return set(line.strip().lower() for line in f if line)
+        except Exception:
+            pass  # fallback to fetching or built-in list
+
+    if is_connected():
+        try:
+            with urllib.request.urlopen(
+                "https://data.iana.org/TLD/tlds-alpha-by-domain.txt", timeout=5
+            ) as response:
+                lines = response.read().decode("utf-8").splitlines()
+                tlds = set(
+                    line.strip().lower()
+                    for line in lines
+                    if line and not line.startswith("#")
+                )
+                # Write to cache
+                with open(TLD_CACHE_PATH, "w", encoding="utf-8") as f:
+                    for tld in sorted(tlds):
+                        f.write(tld + "\n")
+                return tlds
+        except Exception:
+            pass  # fallback to built-in list
+
+    return FALLBACK_TLDS
+
+
+VALID_TLDS = fetch_tlds_from_iana()
+
+
+def has_valid_tld(domain: str) -> bool:
+    if "." not in domain:
+        return False
+    tld = domain.rsplit(".", 1)[-1].lower()
+    return tld in VALID_TLDS
+
+
 def is_valid_url(url):
     try:
         # Parse the URL
@@ -187,6 +283,8 @@ def is_valid_url(url):
             # Validate the domain (if not IPv4 or IPv6)
             if not ipv4_regex.match(host) and not is_valid_ipv6(host[1:-1]):
                 if not domain_regex.match(host):
+                    return False
+                if not has_valid_tld(host):
                     return False
 
             # Validate the port if it exists
@@ -236,9 +334,14 @@ def is_valid_url(url):
             if not ipv4_regex.match(host) and not is_valid_ipv6(host[1:-1]):
                 if not domain_regex.match(host):
                     return False
+                if not has_valid_tld(host):
+                    return False
 
             # Validate the domain
             if not domain_regex.match(host):
+                return False
+
+            if not has_valid_tld(host):
                 return False
 
             # Validate the port if it exists
