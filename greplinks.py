@@ -9,7 +9,6 @@ import socket
 import urllib.request
 from urllib.parse import urlparse
 
-
 TLD_CACHE_PATH = os.path.expanduser("~/.tld_cache.txt")
 
 FALLBACK_TLDS = {
@@ -84,10 +83,10 @@ def get_args():
             description=msg,
             epilog=textwrap.dedent(
                 f"""\
-                                                 \r{'About':-^100}
-                                                 \nAuthor: Arshia Mashhoor
-                                                 \nGithub:https://github.com/a-mashhoor/greplinks
-                                                 """
+                    \r{'About':-^100}
+                    \nAuthor: Arshia Mashhoor
+                    \nGithub:https://github.com/a-mashhoor/greplinks
+                """
             ),
             add_help=True,
         )
@@ -249,18 +248,14 @@ def is_valid_url(url):
             r"^(?:[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|localhost|\[[0-9a-fA-F:.]+\]|[0-9]{1,3}(?:\.[0-9]{1,3}){3})$"
         )
 
-        # Regex for validating paths
         path_regex = re.compile(r"^(/[a-zA-Z0-9._~-]+(?:/[a-zA-Z0-9._~-]*)*)?$")
 
         ipv4_regex = re.compile(r"^[0-9]{1,3}(?:\.[0-9]{1,3}){3}$")
 
-        # Regex for query and fragment validation
         query_regex = re.compile(r"^(\?[a-zA-Z0-9_&=.-]+)?$")
         fragment_regex = re.compile(r"^(#[a-zA-Z0-9_-]+)?$")
 
-        # Check if the URL has a scheme and netloc
         if result.scheme and result.netloc:
-            # Split netloc into host and port
             if result.netloc.startswith("["):  # IPv6 address
                 host_end = result.netloc.find("]")
                 if host_end == -1:
@@ -268,34 +263,28 @@ def is_valid_url(url):
                 host = result.netloc[: host_end + 1]  # Include brackets
                 port = result.netloc[host_end + 2 :]  # After ']:' if port exists
 
-                # Validate the IPv6 address
                 if not is_valid_ipv6(host[1:-1]):  # Remove brackets before validation
                     return False
 
             else:  # IPv4 or domain name
                 host, _, port = result.netloc.partition(":")
 
-                # Validate IPv4 addresses
                 if ipv4_regex.match(host):
                     if not is_valid_ipv4(host):
                         return False
 
-            # Validate the domain (if not IPv4 or IPv6)
             if not ipv4_regex.match(host) and not is_valid_ipv6(host[1:-1]):
                 if not domain_regex.match(host):
                     return False
                 if not has_valid_tld(host):
                     return False
 
-            # Validate the port if it exists
             if port and not is_valid_port(port):
                 return False
 
-            # Validate the path
             if result.path and not path_regex.match(result.path):
                 return False
 
-            # Validate query and fragment
             if result.query and not query_regex.match(result.query):
                 return False
 
@@ -304,14 +293,11 @@ def is_valid_url(url):
 
             return True
 
-        # Handle URLs without a scheme (e.g., api.example.org/v1/users)
         if not result.scheme and result.path:
-            # Split the path into domain and remaining parts
             parts = result.path.split("/", 1)
             domain = parts[0]
             remaining = "/" + parts[1] if len(parts) > 1 else ""
 
-            # Split domain into host and port
             if domain.startswith("["):
                 host_end = domain.find("]")
                 if host_end == -1:
@@ -319,25 +305,21 @@ def is_valid_url(url):
                 host = domain[: host_end + 1]
                 port = domain[host_end + 2 :]
 
-                # Validate the IPv6 address
                 if not is_valid_ipv6(host[1:-1]):  # Remove brackets before validation
                     return False
             else:
                 host, _, port = domain.partition(":")
 
-                # Validate IPv4 addresses
                 if ipv4_regex.match(host):
                     if not is_valid_ipv4(host):
                         return False
 
-            # Validate the domain (if not IPv4 or IPv6)
             if not ipv4_regex.match(host) and not is_valid_ipv6(host[1:-1]):
                 if not domain_regex.match(host):
                     return False
                 if not has_valid_tld(host):
                     return False
 
-            # Validate the domain
             if not domain_regex.match(host):
                 return False
 
