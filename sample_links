@@ -1,0 +1,24 @@
+Visit https://www.google.com for more info.
+You can also check http://example.org/path/to/resource.
+WebSocket connections are available at ws://localhost:8080.
+For secure WebSocket, use wss://secure.example.com.
+Try www.github.com for open-source projects.
+Access mail.google.com for Gmail.
+Use api.example.org/v1/users for API access.
+Visit https://www.google.com for more info.
+You can also check http://example.org/path/to/resource.
+WebSocket connections are available at ws://localhost:8080.
+For secure WebSocket, use wss://secure.example.com/api/v1?token=abc123.
+Try www.github.com for open-source projects.
+Access mail.google.com/mail/u/0/#inbox for Gmail.
+Use api.example.org/v1/users?page=2#results for API access.
+https://192.1.1.1:8080/parh
+ws://localhost:8080/path/to/search?key=value1
+http://[1080:0:0:0:8:800:200C:417A]:8888/index.html
+http://[1080:0:0:0:8:800:200C:417A]/index.html
+https://192.1.1.1:443/index.html
+https://google.com/index.html
+https://somesubdomain.example.com/file.php
+https://sub.site.com/file.js
+ftps://192.21.1.1:55/asfd
+http://[::1]:8080/index.html
