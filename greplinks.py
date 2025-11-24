@@ -12,44 +12,10 @@ from urllib.parse import urlparse
 TLD_CACHE_PATH = os.path.expanduser("~/.tld_cache.txt")
 
 FALLBACK_TLDS = {
-    "com",
-    "net",
-    "org",
-    "edu",
-    "gov",
-    "mil",
-    "int",
-    "info",
-    "biz",
-    "co",
-    "io",
-    "dev",
-    "ai",
-    "me",
-    "us",
-    "uk",
-    "ca",
-    "au",
-    "de",
-    "fr",
-    "jp",
-    "cn",
-    "ru",
-    "xyz",
-    "top",
-    "site",
-    "online",
-    "app",
-    "shop",
-    "blog",
-    "tech",
-    "pro",
-    "club",
-    "store",
-    "space",
-    "cloud",
-    "world",
-    "life",
+    "com", "net", "org", "edu", "gov", "mil", "int", "info", "biz", "co",
+    "io", "dev", "ai", "me", "us", "uk", "ca", "au", "de", "fr", "jp", "cn",
+    "ru", "xyz", "top", "site", "online", "app", "shop", "blog", "tech", "pro",
+    "club", "store", "space", "cloud", "world", "life",
 }
 
 
@@ -62,7 +28,6 @@ def get_args():
     Usage = """Basic usage: ./greplinks -i inputfile -o outfile \n
     \r cat inputfile | ./greplinks -o output_file"""
 
-    # creatin custom argpatser class
     class MyParser(argparse.ArgumentParser):
         def error(self, message):
             print(Usage)
@@ -70,9 +35,7 @@ def get_args():
             self.print_help()
             os._exit(2)
 
-    # argument parse function
-    def args_parser() -> "arguments list and parser itslef":
-
+    def args_parser():
         msg = f"""\033[1;31mThis tool is developed by Arshia Mashhoor
         \runder MIT Open source LICENCE for educational usgae only.
         \rAuthor is not responsible for any abuse!\033[0m\n{'Help':*^100}"""
@@ -91,25 +54,15 @@ def get_args():
             add_help=True,
         )
 
-        # if no arguments specified by the user showing the help and exiting the tool
-        # if len(sys.argv) == 1:
-        #    print(Usage)
-        #    parser.print_help(sys.stderr)
-        #    os._exit(1)
-
-        ### Adding Command Line Arguments ###
-
-        # input command line argumnet or file
         input_group = parser.add_mutually_exclusive_group(required=False)
         input_group.add_argument(
             "-i",
             "--input-file",
             nargs=1,
             type=argparse.FileType("r", encoding="UTF-8"),
-            help="read a inpit file",
+            help="read a input file",
         )
 
-        # simple config command line arguments
         parser.add_argument(
             "-s",
             "--silent",
@@ -134,7 +87,6 @@ def get_args():
             help="sorts the output default False",
         )
 
-        # output arguments
         output_group = parser.add_mutually_exclusive_group(required=False)
         output_group.add_argument(
             "-o",
@@ -144,17 +96,14 @@ def get_args():
             help="save output in text (ascii based) file",
         )
 
-        # version command line argument
         parser.add_argument(
             "-v", "--version", action="version", version="%(prog)s 1.0.0"
         )
 
         args = parser.parse_args()
-
         return args
 
-    args = args_parser()
-    return args
+    return args_parser()
 
 
 def print_colored(text, color="green"):
@@ -162,21 +111,11 @@ def print_colored(text, color="green"):
     print(f"{colors[color]}{text}{colors['reset']}")
 
 
-def is_valid_port(port):
-    try:
-        port = int(port)
-        return 0 <= port <= 65535
-    except ValueError:
-        return False
-
-
 def is_valid_ipv4(ip):
     try:
-        parts = ip.split(".")
-        if len(parts) != 4:
-            return False
-        return all(0 <= int(part) <= 255 for part in parts)
-    except ValueError:
+        ipaddress.IPv4Address(ip)
+        return True
+    except ipaddress.AddressValueError:
         return False
 
 
@@ -204,7 +143,7 @@ def fetch_tlds_from_iana():
             with open(TLD_CACHE_PATH, "r", encoding="utf-8") as f:
                 return set(line.strip().lower() for line in f if line)
         except Exception:
-            pass  # fallback to fetching or built-in list
+            pass
 
     if is_connected():
         try:
@@ -217,13 +156,12 @@ def fetch_tlds_from_iana():
                     for line in lines
                     if line and not line.startswith("#")
                 )
-                # Write to cache
                 with open(TLD_CACHE_PATH, "w", encoding="utf-8") as f:
                     for tld in sorted(tlds):
                         f.write(tld + "\n")
                 return tlds
         except Exception:
-            pass  # fallback to built-in list
+            pass
 
     return FALLBACK_TLDS
 
@@ -232,6 +170,7 @@ VALID_TLDS = fetch_tlds_from_iana()
 
 
 def has_valid_tld(domain: str) -> bool:
+    """Check if domain has a valid TLD."""
     if "." not in domain:
         return False
     tld = domain.rsplit(".", 1)[-1].lower()
@@ -239,122 +178,84 @@ def has_valid_tld(domain: str) -> bool:
 
 
 def is_valid_url(url):
+    """Simplified URL validation that's more permissive."""
     try:
+        # Basic URL structure check
+        if not url or len(url) < 3:
+            return False
+
         # Parse the URL
         result = urlparse(url)
 
-        # Regex for validating domain names, IPv4, and IPv6
-        domain_regex = re.compile(
-            r"^(?:[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|localhost|\[[0-9a-fA-F:.]+\]|[0-9]{1,3}(?:\.[0-9]{1,3}){3})$"
-        )
+        # If no scheme and no netloc, try to parse as domain/path
+        if not result.scheme and not result.netloc:
+            # Check if it starts with a domain-like pattern
+            if '/' in url:
+                domain_part = url.split('/')[0]
+            else:
+                domain_part = url
 
-        path_regex = re.compile(r"^(/[a-zA-Z0-9._~-]+(?:/[a-zA-Z0-9._~-]*)*)?$")
-
-        ipv4_regex = re.compile(r"^[0-9]{1,3}(?:\.[0-9]{1,3}){3}$")
-
-        query_regex = re.compile(r"^(\?[a-zA-Z0-9_&=.-]+)?$")
-        fragment_regex = re.compile(r"^(#[a-zA-Z0-9_-]+)?$")
-
-        if result.scheme and result.netloc:
-            if result.netloc.startswith("["):  # IPv6 address
-                host_end = result.netloc.find("]")
-                if host_end == -1:
-                    return False  # Invalid IPv6 format
-                host = result.netloc[: host_end + 1]  # Include brackets
-                port = result.netloc[host_end + 2 :]  # After ']:' if port exists
-
-                if not is_valid_ipv6(host[1:-1]):  # Remove brackets before validation
-                    return False
-
-            else:  # IPv4 or domain name
-                host, _, port = result.netloc.partition(":")
-
-                if ipv4_regex.match(host):
-                    if not is_valid_ipv4(host):
+            # Check if domain_part looks like a domain or IP
+            if ':' in domain_part:
+                host, port = domain_part.rsplit(':', 1)
+                try:
+                    port_num = int(port)
+                    if not (0 <= port_num <= 65535):
                         return False
-
-            if not ipv4_regex.match(host) and not is_valid_ipv6(host[1:-1]):
-                if not domain_regex.match(host):
-                    return False
-                if not has_valid_tld(host):
-                    return False
-
-            if port and not is_valid_port(port):
-                return False
-
-            if result.path and not path_regex.match(result.path):
-                return False
-
-            if result.query and not query_regex.match(result.query):
-                return False
-
-            if result.fragment and not fragment_regex.match(result.fragment):
-                return False
-
-            return True
-
-        if not result.scheme and result.path:
-            parts = result.path.split("/", 1)
-            domain = parts[0]
-            remaining = "/" + parts[1] if len(parts) > 1 else ""
-
-            if domain.startswith("["):
-                host_end = domain.find("]")
-                if host_end == -1:
-                    return False
-                host = domain[: host_end + 1]
-                port = domain[host_end + 2 :]
-
-                if not is_valid_ipv6(host[1:-1]):  # Remove brackets before validation
+                except ValueError:
                     return False
             else:
-                host, _, port = domain.partition(":")
+                host = domain_part
 
-                if ipv4_regex.match(host):
-                    if not is_valid_ipv4(host):
-                        return False
-
-            if not ipv4_regex.match(host) and not is_valid_ipv6(host[1:-1]):
-                if not domain_regex.match(host):
-                    return False
-                if not has_valid_tld(host):
-                    return False
-
-            if not domain_regex.match(host):
+            # Validate host
+            if is_valid_ipv4(host) or is_valid_ipv6(host):
+                return True
+            elif '.' in host and has_valid_tld(host):
+                return True
+            else:
                 return False
 
-            if not has_valid_tld(host):
-                return False
+        # If we have a scheme, validate the netloc
+        if result.scheme and result.netloc:
+            # Extract host from netloc (handle port)
+            host = result.netloc.split('@')[-1]  # Remove auth if present
+            host = host.split(':')[0]  # Remove port
 
-            # Validate the port if it exists
-            if port and not is_valid_port(port):
-                return False
+            # Handle IPv6 addresses in brackets
+            if host.startswith('[') and host.endswith(']'):
+                host = host[1:-1]
 
-            # Validate the remaining path
-            if remaining and not path_regex.match(remaining):
+            # Validate host
+            if is_valid_ipv4(host) or is_valid_ipv6(host):
+                return True
+            elif has_valid_tld(host):
+                return True
+            elif host == 'localhost':
+                return True
+            else:
                 return False
-
-            return True
 
         return False
-    except:
+
+    except Exception:
         return False
 
 
 def greplinks(args):
-
     file_path = args.input_file
     output_file = args.output
     silent = args.silent
     colored = args.colored
     sort = args.sort
 
-    # Define the regex for matching URLs
+    # Improved URL regex - more permissive
     url_regex = re.compile(
-        r"\b(?:https?://|wss?://|ws?://|ftp://|sftp://|scp://|tftp://|imap://|imaps://|pop://|pops://|smtp://|smtps://|rtsp://|rtsps://|rtp://|rtmp://|rtmps://|sip://|sips://|jdbc:|odbc:|mongodb://|postgres://|postgresql://|magnet:|bittorrent:|git://|ssh://|svn://|telnet://|irc://|ircs://|data:|ldap://|ldaps://|nfs://|dns://|slack://|zoommtg://|steam://|spotify:|file://)?"
-        r"(?:[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|localhost|\[?[0-9a-fA-F:.]+\]?|[0-9]{1,3}(?:\.[0-9]{1,3}){3})"
-        r"(?::[0-9]+)?"
-        r"(?:/[^\s]*)?\b"
+        r"""(
+            (?:https?|ftp|ws|wss)://[^\s<>"{}|\\^`\[\]]+ |  # URLs with scheme
+            (?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}  # Domains
+            (?:[/?#][^\s<>"{}|\\^`\[\]]*)?  # Optional path/query/fragment
+        )""",
+        re.VERBOSE
     )
 
     # Read input from file or stdin
@@ -365,15 +266,37 @@ def greplinks(args):
 
     matches = url_regex.findall(text)
 
-    # Process matches to remove trailing punctuation
+    # Process matches to remove trailing punctuation and clean up
     cleaned_urls = []
     for match in matches:
-        # Remove trailing punctuation (e.g., periods, commas)
-        cleaned_url = re.sub(r"[.,;!?]$", "", match)
+        if isinstance(match, tuple):
+            match = match[0]  # Handle regex groups
+
+        # Clean the URL
+        cleaned_url = match.strip()
+
+        # Remove common trailing characters
+        cleaned_url = re.sub(r'[.,;!?)\]}<>]+$', '', cleaned_url)
+
+        # Ensure URL has scheme if it looks like a domain
+        if not re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*://', cleaned_url):
+            if '/' in cleaned_url:
+                # It has a path, assume http
+                cleaned_url = 'http://' + cleaned_url
+            elif ':' in cleaned_url.split('/')[0]:
+                # It has a port, assume http
+                cleaned_url = 'http://' + cleaned_url
+
         cleaned_urls.append(cleaned_url)
 
-    # Filter valid URLs and sort
-    valid_urls = list(set(url for url in cleaned_urls if is_valid_url(url)))
+    # Filter valid URLs and remove duplicates
+    valid_urls = []
+    seen = set()
+
+    for url in cleaned_urls:
+        if url not in seen and is_valid_url(url):
+            valid_urls.append(url)
+            seen.add(url)
 
     if sort:
         valid_urls.sort()
@@ -386,7 +309,7 @@ def greplinks(args):
     if not silent:
         for url in valid_urls:
             if colored:
-                print_colored(url, color="red")
+                print_colored(url, color="green")
             else:
                 print(url)
 
